@@ -10,5 +10,11 @@ python code. Furthermore, the bash script includes some files of helper function
 which provide a rudamentary library of common functionality, again similar to python. Things like a 
 simple "print()" function, string manipulation, and some other stuff.
 
+I call it cscript, as in scripting in C.
 
+Even thought I refer to it as a Just In Time compiler in the code, I understand that it isn't a proper
+JIT. It just checks if there is a gcc based statically compiled version of the code that has a time
+stamp greater than the input file, and compiles it if there isn't. Iterative coding edits are sped up
+in that code is compiled and run in a single command. Running an already compiled file is as fast as
+gcc -O2, which is pretty much the definition of fast.
 
