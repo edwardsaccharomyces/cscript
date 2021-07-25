@@ -1,0 +1,51 @@
+#!/bin/bash
+
+if [ $# -eq 0 ]
+then
+	echo "Usage: ${0} <*.cpp filename> (<optional inputs to cpp script> ...)"
+	exit
+fi
+
+#echo "Script to run: ${1}"
+file=$(basename "${1}")
+mydir=$(dirname $(realpath $0))
+hiddenfile=".${file}"
+hiddenexe=".${file}.out"
+
+# 0. If the hidden file is newer than the input file, then we don't need to recompile, and can run from the hidden file directly, thus skipping the compile time. This is useful as now finished programs can run much faster.
+if [ ! -f ${hiddenexe} ] || [ "$(stat -c %Y ${hiddenexe})" -lt "$(stat -c %Y ${file})" ]
+then
+
+	echo "JIT Compiling..."
+	
+	# 1. Copy the input script to an invisible "." file and trim off the top line, containing the "#!/..." stuff.
+	# 1b. Add #include helper.h to the source file, which has the added benefit of making the line numbers match up in compile error messages, which otherwise wouldn't occur due to removing the first line.
+	echo "#include \"${mydir}/cscript.h\"" > ${hiddenfile}
+	tail -n+2 ${1} >> "${hiddenfile}"
+
+
+	# 2. Compile the file into another invisible "." file, and then delete the file from 1.
+	g++ -g -rdynamic -O2 -Werror=return-type -std=c++11 -o "${hiddenexe}" "${mydir}/src/helper.cpp" "${mydir}/src/plotxy.cpp" "${mydir}/src/plotheatmap.cpp" "${hiddenfile}" `pkg-config --cflags gtk+-3.0` `pkg-config --libs gtk+-3.0`
+
+	chmod +x "${hiddenexe}"
+
+fi
+
+# Only if compile was successful, then run the compiled file. If compile was successful, then the hiddenexe will be newer than the hiddenfile.
+if [ "$(stat -c %Y ${hiddenexe})" -gt "$(stat -c %Y ${file})" ]
+then
+
+	# 3 Run the executable and pause this process.
+	exe="./${hiddenexe} ${@: 2}"
+	${exe}
+
+	#$(${hiddenexe} ${@: 2})
+
+	#4. Delete the intermediate file, if it exists.
+	if [ -f ${hiddenfile} ]
+	then
+		rm "${hiddenfile}"
+	fi
+
+fi
+
